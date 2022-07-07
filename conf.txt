@@ -1,0 +1,40 @@
+input {
+   file {
+        path => "/root/SALES.csv"
+        start_position => "beginning"
+        sincedb_path => "/dev/null"}
+}
+
+filter {
+        csv {
+                separator => ","
+                columns  => ["UNIT","AC-YEAR","YEAR","MONTH","YM","DEP","STORE","BRAND","SEASON","TYPE","QUALITY","SALES(K)","COST(K)","PRICE(K)","MARGIN(K)","ORIGEN","Latitude","Longitude"]
+                }
+
+        mutate {
+                gsub => [ "YEAR", "年", "" ]
+                gsub => [ "MONTH", "月", "" ]
+
+                convert => { "YEAR" => "integer" }
+                convert => { "MONTH" => "integer" }
+                convert => { "QUALITY" => "integer" }
+                convert => { "SALES(K)" => "float" }
+                convert => { "COST(K)" => "float" }
+
+                }
+
+        mutate {
+                add_field => ["[geoip][location]", "%{Longitude}"]
+                add_field => ["[geoip][location]", "%{Latitude}"]
+                }
+
+        mutate {
+                convert => ["[geoip][location]" , "float" ]
+                }
+
+
+output {
+   elasticsearch {
+      hosts => ["localhost:9200"]
+      index => "logstash-sales"}
+}
